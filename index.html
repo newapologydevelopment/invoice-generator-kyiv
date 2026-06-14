@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="color-scheme: light">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#2563eb" />
+<meta name="theme-color" content="#f4f5f7" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <title>Invoice Builder · Генератор рахунків</title>
 <style>
@@ -14,11 +14,14 @@
     --muted: #6b7280;
     --line: #e4e7ec;
     --accent: #2563eb;
+    --accent-hover: #1d4ed8;
     --accent-soft: #eff4ff;
+    --focus-ring: 0 0 0 3px var(--accent-soft);
     --radius: 10px;
     --shadow: 0 1px 3px rgba(16,24,40,.08), 0 1px 2px rgba(16,24,40,.04);
   }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   html, body { margin: 0; padding: 0; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -26,7 +29,75 @@
     color: var(--ink);
     font-size: 14px;
     line-height: 1.5;
+    -webkit-tap-highlight-color: rgba(37, 99, 235, 0.15);
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  .skip-link {
+    position: absolute;
+    left: 12px;
+    top: -100px;
+    z-index: 100;
+    padding: 10px 16px;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+  }
+  .skip-link:focus-visible {
+    top: 12px;
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  :focus { outline: none; }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .field:focus-within label { color: var(--accent); }
+  .field input:focus-visible,
+  .field textarea:focus-visible,
+  .field select:focus-visible {
+    border-color: var(--accent);
+    box-shadow: var(--focus-ring);
+  }
+  .btn:focus-visible,
+  .item-del:focus-visible,
+  details.section > summary:focus-visible,
+  .mobile-bar button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .btn:active { background: #eef2ff; border-color: #93c5fd; }
+  .btn-accent:active { background: var(--accent-hover); }
+  .btn:disabled { opacity: 0.65; cursor: not-allowed; }
+  .btn.is-loading { position: relative; pointer-events: none; }
+
+  .status-region { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
 
   /* ---------- App layout ---------- */
   .app {
@@ -108,12 +179,15 @@
     font-size: 13px;
     font-family: inherit;
     color: var(--ink);
-    background: #fff;
+    background-color: #fff;
+    touch-action: manipulation;
+  }
+  .field select {
+    background-color: #fff;
+    color: var(--ink);
   }
   .field input:focus, .field textarea:focus, .field select:focus {
     outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-soft);
   }
   .field textarea { resize: vertical; min-height: 56px; }
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -134,14 +208,18 @@
     color: #dc2626;
     font-size: 12px;
     cursor: pointer;
-    padding: 0;
+    padding: 8px 4px;
+    min-height: 36px;
+    touch-action: manipulation;
   }
+  .item-del:hover { color: #b91c1c; text-decoration: underline; }
   .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
     padding: 9px 14px;
+    min-height: 36px;
     border-radius: 8px;
     border: 1px solid var(--line);
     background: #fff;
@@ -150,8 +228,9 @@
     font-weight: 600;
     cursor: pointer;
     font-family: inherit;
+    touch-action: manipulation;
   }
-  .btn:hover { background: #f9fafb; }
+  .btn:hover { background: #f9fafb; border-color: #cbd5e1; }
   .btn-block { width: 100%; }
   .btn-accent { background: var(--accent); color: #fff; border-color: var(--accent); }
   .btn-accent:hover { background: #1d4ed8; }
@@ -214,7 +293,32 @@
     margin: 0 0 6px;
     border-bottom: 1px solid var(--line);
     padding-bottom: 4px;
+    scroll-margin-top: 80px;
   }
+  .dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgba(17, 24, 39, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    overscroll-behavior: contain;
+  }
+  .dialog-backdrop[hidden] { display: none; }
+  .dialog {
+    background: var(--panel);
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 20px 48px rgba(16, 24, 40, 0.18);
+  }
+  .dialog h2 { margin: 0 0 8px; font-size: 16px; }
+  .dialog p { margin: 0 0 20px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+  .dialog-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+  .dialog-actions .btn { min-width: 100px; }
   .party .name { font-weight: 700; font-size: 13px; margin-bottom: 3px; }
   .party .line { color: #374151; }
   .party .meta-line { font-size: 10.5px; color: #4b5563; margin-top: 2px; }
@@ -236,7 +340,7 @@
     font-weight: 600;
   }
   table.items thead th small { display:block; font-weight:400; color:#cbd5e1; text-transform:none; letter-spacing:0; }
-  table.items th.r, table.items td.r { text-align: right; }
+  table.items th.r, table.items td.r { text-align: right; font-variant-numeric: tabular-nums; }
   table.items tbody td {
     padding: 9px 10px;
     border-bottom: 1px solid var(--line);
@@ -247,7 +351,8 @@
   .totals { display: flex; justify-content: flex-end; margin-bottom: 22px; }
   .totals table { border-collapse: collapse; min-width: 240px; }
   .totals td { padding: 5px 10px; }
-  .totals td.r { text-align: right; }
+  .totals td.r { text-align: right; font-variant-numeric: tabular-nums; }
+  .inv-meta .num { font-variant-numeric: tabular-nums; }
   .totals tr.grand td {
     border-top: 2px solid #111827;
     font-size: 15px;
@@ -416,36 +521,40 @@
 </style>
 </head>
 <body>
+<a class="skip-link" href="#main-content">Skip to content</a>
+<div id="statusRegion" class="status-region" role="status" aria-live="polite" aria-atomic="true"></div>
+
 <div class="app view-edit">
   <!-- ================= EDITOR ================= -->
-  <div class="editor">
+  <main class="editor" id="editor-panel" role="tabpanel" aria-labelledby="mbEdit">
     <div class="editor-head">
-      <h1>Invoice Builder</h1>
+      <h1 translate="no">Invoice Builder</h1>
       <p>Генератор рахунків · English &amp; Українська</p>
     </div>
 
+    <div id="main-content">
     <!-- Invoice details -->
     <details class="section" open>
       <summary>Invoice details · Деталі рахунку</summary>
       <div class="section-body">
         <div class="row">
           <div class="field">
-            <label>Invoice № · Номер</label>
-            <input id="invNo" type="text" placeholder="2026-001" />
+            <label for="invNo">Invoice № · Номер</label>
+            <input id="invNo" name="invNo" type="text" autocomplete="off" placeholder="2026-001…" />
           </div>
           <div class="field">
-            <label>Date · Дата</label>
-            <input id="invDate" type="date" />
+            <label for="invDate">Date · Дата</label>
+            <input id="invDate" name="invDate" type="date" autocomplete="off" />
           </div>
         </div>
         <div class="row">
           <div class="field">
-            <label>Due date · Термін оплати</label>
-            <input id="dueDate" type="date" />
+            <label for="dueDate">Due date · Термін оплати</label>
+            <input id="dueDate" name="dueDate" type="date" autocomplete="off" />
           </div>
           <div class="field">
-            <label>Currency · Валюта</label>
-            <select id="currency">
+            <label for="currency">Currency · Валюта</label>
+            <select id="currency" name="currency">
               <option value="USD">USD — US Dollar</option>
               <option value="EUR">EUR — Euro</option>
               <option value="UAH">UAH — Гривня</option>
@@ -453,8 +562,8 @@
           </div>
         </div>
         <div class="field">
-          <label>Contract ref · Договір (optional)</label>
-          <input id="contractRef" type="text" placeholder="№ 12 від 01.01.2026" />
+          <label for="contractRef">Contract ref · Договір (optional)</label>
+          <input id="contractRef" name="contractRef" type="text" autocomplete="off" placeholder="№ 12 від 01.01.2026…" />
         </div>
       </div>
     </details>
@@ -464,46 +573,46 @@
       <summary>Service provider — ФОП (Ukraine)</summary>
       <div class="section-body">
         <div class="field">
-          <label>Logo (optional) · Логотип</label>
-          <input id="logoFile" type="file" accept="image/*" />
-          <button class="btn" id="logoClear" type="button" style="margin-top:6px">Remove logo</button>
+          <label for="logoFile">Logo (optional) · Логотип</label>
+          <input id="logoFile" name="logoFile" type="file" accept="image/*" autocomplete="off" />
+          <button class="btn" id="logoClear" type="button" style="margin-top:6px">Remove Logo</button>
         </div>
         <div class="field">
-          <label>Full name · ПІБ</label>
-          <input id="spName" type="text" placeholder="Іваненко Іван Іванович" />
+          <label for="spName">Full name · ПІБ</label>
+          <input id="spName" name="spName" type="text" autocomplete="name" placeholder="Іваненко Іван Іванович…" />
         </div>
         <div class="field">
-          <label>Status (EN) · e.g. Individual Entrepreneur</label>
-          <input id="spStatusEn" type="text" placeholder="Individual Entrepreneur (FOP)" />
+          <label for="spStatusEn">Status (EN) · e.g. Individual Entrepreneur</label>
+          <input id="spStatusEn" name="spStatusEn" type="text" autocomplete="off" placeholder="Individual Entrepreneur (FOP)…" />
         </div>
         <div class="field">
-          <label>Status (UA) · Статус</label>
-          <input id="spStatusUa" type="text" placeholder="Фізична особа-підприємець (ФОП)" />
+          <label for="spStatusUa">Status (UA) · Статус</label>
+          <input id="spStatusUa" name="spStatusUa" type="text" autocomplete="off" placeholder="Фізична особа-підприємець (ФОП)…" />
         </div>
         <div class="field">
-          <label>РНОКПП / Tax ID</label>
-          <input id="spTaxId" type="text" placeholder="1234567890" />
+          <label for="spTaxId">РНОКПП / Tax ID</label>
+          <input id="spTaxId" name="spTaxId" type="text" autocomplete="off" spellcheck="false" inputmode="numeric" placeholder="1234567890…" />
         </div>
         <div class="field">
-          <label>Tax group / notes · Група єдиного податку</label>
-          <input id="spTaxGroup" type="text" placeholder="Single tax, Group 3 (5%) · 3 група, ЄП 5%" />
+          <label for="spTaxGroup">Tax group / notes · Група єдиного податку</label>
+          <input id="spTaxGroup" name="spTaxGroup" type="text" autocomplete="off" placeholder="Single tax, Group 3 (5%) · 3 група, ЄП 5%…" />
         </div>
         <div class="field">
-          <label>Address (EN) · Адреса</label>
-          <textarea id="spAddrEn" placeholder="вул. Хрещатик 1, Київ, 01001, Ukraine"></textarea>
+          <label for="spAddrEn">Address (EN) · Адреса</label>
+          <textarea id="spAddrEn" name="spAddrEn" autocomplete="street-address" placeholder="вул. Хрещатик 1, Київ, 01001, Ukraine…"></textarea>
         </div>
         <div class="field">
-          <label>Address (UA) · Адреса</label>
-          <textarea id="spAddrUa" placeholder="вул. Хрещатик 1, м. Київ, 01001, Україна"></textarea>
+          <label for="spAddrUa">Address (UA) · Адреса</label>
+          <textarea id="spAddrUa" name="spAddrUa" autocomplete="off" placeholder="вул. Хрещатик 1, м. Київ, 01001, Україна…"></textarea>
         </div>
         <div class="row">
           <div class="field">
-            <label>Email</label>
-            <input id="spEmail" type="text" placeholder="name@email.com" />
+            <label for="spEmail">Email</label>
+            <input id="spEmail" name="spEmail" type="email" autocomplete="email" spellcheck="false" placeholder="name@email.com…" />
           </div>
           <div class="field">
-            <label>Phone · Телефон</label>
-            <input id="spPhone" type="text" placeholder="+380 ..." />
+            <label for="spPhone">Phone · Телефон</label>
+            <input id="spPhone" name="spPhone" type="tel" autocomplete="tel" spellcheck="false" placeholder="+380…" />
           </div>
         </div>
       </div>
@@ -514,21 +623,21 @@
       <summary>Bill to — Client (USA)</summary>
       <div class="section-body">
         <div class="field">
-          <label>Company name · Назва компанії</label>
-          <input id="clName" type="text" placeholder="Acme Inc." />
+          <label for="clName">Company name · Назва компанії</label>
+          <input id="clName" name="clName" type="text" autocomplete="organization" placeholder="Acme Inc.…" />
         </div>
         <div class="field">
-          <label>Address · Адреса</label>
-          <textarea id="clAddr" placeholder="123 Market St, San Francisco, CA 94105, USA"></textarea>
+          <label for="clAddr">Address · Адреса</label>
+          <textarea id="clAddr" name="clAddr" autocomplete="street-address" placeholder="123 Market St, San Francisco, CA 94105, USA…"></textarea>
         </div>
         <div class="row">
           <div class="field">
-            <label>Tax ID / EIN</label>
-            <input id="clTaxId" type="text" placeholder="optional" />
+            <label for="clTaxId">Tax ID / EIN</label>
+            <input id="clTaxId" name="clTaxId" type="text" autocomplete="off" spellcheck="false" placeholder="Optional…" />
           </div>
           <div class="field">
-            <label>Email</label>
-            <input id="clEmail" type="text" placeholder="ap@acme.com" />
+            <label for="clEmail">Email</label>
+            <input id="clEmail" name="clEmail" type="email" autocomplete="email" spellcheck="false" placeholder="ap@acme.com…" />
           </div>
         </div>
       </div>
@@ -538,8 +647,8 @@
     <details class="section" open>
       <summary>Line items · Послуги / товари</summary>
       <div class="section-body">
-        <div id="items"></div>
-        <button class="btn btn-block" id="addItem">+ Add line · Додати рядок</button>
+        <div id="items" role="group" aria-label="Line items"></div>
+        <button class="btn btn-block" id="addItem" type="button">+ Add Line · Додати рядок</button>
       </div>
     </details>
 
@@ -548,44 +657,44 @@
       <summary>Payment details · Реквізити для оплати</summary>
       <div class="section-body">
         <div class="field">
-          <label>Beneficiary name · Отримувач</label>
-          <input id="bkBenef" type="text" placeholder="defaults to provider name" />
+          <label for="bkBenef">Beneficiary name · Отримувач</label>
+          <input id="bkBenef" name="bkBenef" type="text" autocomplete="name" placeholder="Defaults to provider name…" />
         </div>
         <div class="field">
-          <label>IBAN account · Рахунок (IBAN)</label>
-          <input id="bkIban" type="text" placeholder="UA00 0000 0000 0000 0000 0000 0000 0" />
+          <label for="bkIban">IBAN account · Рахунок (IBAN)</label>
+          <input id="bkIban" name="bkIban" type="text" autocomplete="off" spellcheck="false" placeholder="UA00 0000 0000 0000 0000 0000 0000 0…" />
         </div>
         <div class="field">
-          <label>Bank name · Назва банку</label>
-          <input id="bkBank" type="text" placeholder="JSC Universal Bank" />
+          <label for="bkBank">Bank name · Назва банку</label>
+          <input id="bkBank" name="bkBank" type="text" autocomplete="organization" placeholder="JSC Universal Bank…" />
         </div>
         <div class="row">
           <div class="field">
-            <label>Bank SWIFT / BIC</label>
-            <input id="bkSwift" type="text" placeholder="XXXXUAXX" />
+            <label for="bkSwift">Bank SWIFT / BIC</label>
+            <input id="bkSwift" name="bkSwift" type="text" autocomplete="off" spellcheck="false" placeholder="XXXXUAXX…" />
           </div>
           <div class="field">
-            <label>Bank address · Адреса банку</label>
-            <input id="bkBankAddr" type="text" placeholder="Kyiv, Ukraine" />
+            <label for="bkBankAddr">Bank address · Адреса банку</label>
+            <input id="bkBankAddr" name="bkBankAddr" type="text" autocomplete="off" placeholder="Kyiv, Ukraine…" />
           </div>
         </div>
         <div class="field">
-          <label>Correspondent bank · Банк-кореспондент</label>
-          <input id="bkCorr" type="text" placeholder="e.g. Citibank N.A., New York" />
+          <label for="bkCorr">Correspondent bank · Банк-кореспондент</label>
+          <input id="bkCorr" name="bkCorr" type="text" autocomplete="organization" placeholder="e.g. Citibank N.A., New York…" />
         </div>
         <div class="row">
           <div class="field">
-            <label>Correspondent SWIFT</label>
-            <input id="bkCorrSwift" type="text" placeholder="CITIUS33" />
+            <label for="bkCorrSwift">Correspondent SWIFT</label>
+            <input id="bkCorrSwift" name="bkCorrSwift" type="text" autocomplete="off" spellcheck="false" placeholder="CITIUS33…" />
           </div>
           <div class="field">
-            <label>Correspondent account</label>
-            <input id="bkCorrAcct" type="text" placeholder="account # at corr. bank" />
+            <label for="bkCorrAcct">Correspondent account</label>
+            <input id="bkCorrAcct" name="bkCorrAcct" type="text" autocomplete="off" spellcheck="false" placeholder="Account # at corr. bank…" />
           </div>
         </div>
         <div class="field">
-          <label>Payment reference · Призначення платежу</label>
-          <input id="bkPurpose" type="text" placeholder="Payment for services under Invoice № ..." />
+          <label for="bkPurpose">Payment reference · Призначення платежу</label>
+          <input id="bkPurpose" name="bkPurpose" type="text" autocomplete="off" placeholder="Payment for services under Invoice №…" />
         </div>
       </div>
     </details>
@@ -595,12 +704,12 @@
       <summary>Notes &amp; signatures · Примітки</summary>
       <div class="section-body">
         <div class="field">
-          <label>Notes (EN)</label>
-          <textarea id="notesEn" placeholder="Services exempt from VAT. Payment within 14 days."></textarea>
+          <label for="notesEn">Notes (EN)</label>
+          <textarea id="notesEn" name="notesEn" autocomplete="off" placeholder="Services exempt from VAT. Payment within 14 days.…"></textarea>
         </div>
         <div class="field">
-          <label>Notes (UA) · Примітки</label>
-          <textarea id="notesUa" placeholder="Без ПДВ. Оплата протягом 14 днів."></textarea>
+          <label for="notesUa">Notes (UA) · Примітки</label>
+          <textarea id="notesUa" name="notesUa" autocomplete="off" placeholder="Без ПДВ. Оплата протягом 14 днів.…"></textarea>
         </div>
       </div>
     </details>
@@ -612,33 +721,46 @@
       </div>
     </details>
 
+    </div><!-- /main-content -->
+
     <p class="hint">Your business &amp; banking details are saved in this browser automatically. Reuse them on every invoice — just change the line items.</p>
 
-    <div class="toolbar">
-      <button class="btn btn-accent" id="print">⤓ Save PDF / Print</button>
-      <button class="btn" id="save">Save defaults</button>
-      <button class="btn" id="saveHistory">Save to history</button>
-      <button class="btn" id="reset">Reset</button>
+    <div class="toolbar" role="toolbar" aria-label="Invoice actions">
+      <button class="btn btn-accent" id="print" type="button">Save PDF / Print</button>
+      <button class="btn" id="save" type="button">Save Defaults</button>
+      <button class="btn" id="saveHistory" type="button">Save to History</button>
+      <button class="btn" id="reset" type="button">Reset Invoice</button>
     </div>
-  </div>
+  </main>
 
   <!-- ================= PREVIEW ================= -->
-  <div class="preview-wrap">
-    <div class="page" id="page"></div>
+  <div class="preview-wrap" id="preview-panel" role="tabpanel" aria-labelledby="mbPreview" aria-label="Invoice preview">
+    <div class="page" id="page" tabindex="-1"></div>
   </div>
 </div>
 
-<nav class="mobile-bar" aria-label="Mobile navigation">
-  <button type="button" id="mbEdit" class="active" aria-pressed="true">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+<div id="resetDialog" class="dialog-backdrop" hidden>
+  <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="resetDialogTitle" aria-describedby="resetDialogDesc">
+    <h2 id="resetDialogTitle">Reset This Invoice?</h2>
+    <p id="resetDialogDesc">Line items &amp; dates will be cleared. Your saved business details stay. This cannot be undone.</p>
+    <div class="dialog-actions">
+      <button class="btn" id="resetCancel" type="button">Keep Editing</button>
+      <button class="btn btn-accent" id="resetConfirm" type="button">Reset Invoice</button>
+    </div>
+  </div>
+</div>
+
+<nav class="mobile-bar" role="tablist" aria-label="View switcher">
+  <button type="button" id="mbEdit" class="active" role="tab" aria-selected="true" aria-controls="editor-panel" aria-label="Edit invoice">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
     Edit
   </button>
-  <button type="button" id="mbPreview" aria-pressed="false">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+  <button type="button" id="mbPreview" role="tab" aria-selected="false" aria-controls="preview-panel" aria-label="Preview invoice">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
     Preview
   </button>
-  <button type="button" id="mbPrint">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+  <button type="button" id="mbPrint" aria-label="Save PDF or print invoice">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
     PDF
   </button>
 </nav>
@@ -667,33 +789,107 @@
   }
   function nl2br(s) { return esc(s).replace(/\n/g, "<br>"); }
 
+  function announceStatus(msg) {
+    var region = $("statusRegion");
+    if (!region) return;
+    region.textContent = "";
+    setTimeout(function () { region.textContent = msg; }, 10);
+  }
+
+  function withLoading(btn, workFn, loadingLabel, doneFn) {
+    if (btn.disabled) return;
+    var orig = btn.textContent;
+    var start = Date.now();
+    var showTimer = setTimeout(function () {
+      btn.textContent = loadingLabel;
+      btn.classList.add("is-loading");
+      btn.setAttribute("aria-busy", "true");
+    }, 200);
+    btn.disabled = true;
+    try {
+      workFn();
+    } finally {
+      clearTimeout(showTimer);
+      var elapsed = Date.now() - start;
+      var wait = Math.max(0, 350 - elapsed);
+      setTimeout(function () {
+        btn.disabled = false;
+        btn.classList.remove("is-loading");
+        btn.removeAttribute("aria-busy");
+        btn.textContent = orig;
+        if (doneFn) doneFn();
+      }, wait);
+    }
+  }
+
+  var invoiceDirty = false;
+  var savedSnapshot = "";
+
+  function invoiceSnapshot() {
+    var g = function (id) { return $(id).value; };
+    return JSON.stringify({
+      invNo: g("invNo"), invDate: g("invDate"), dueDate: g("dueDate"),
+      currency: g("currency"), clName: g("clName"), items: items
+    });
+  }
+
+  function markClean() {
+    savedSnapshot = invoiceSnapshot();
+    invoiceDirty = false;
+  }
+
+  function checkDirty() {
+    invoiceDirty = invoiceSnapshot() !== savedSnapshot;
+    return invoiceDirty;
+  }
+
+  function syncUrlView(view, replace) {
+    try {
+      var url = new URL(window.location.href);
+      if (view === "preview") url.searchParams.set("view", "preview");
+      else url.searchParams.delete("view");
+      if (replace) history.replaceState({ view: view }, "", url);
+      else history.pushState({ view: view }, "", url);
+    } catch (e) {}
+  }
+
+  function readUrlView() {
+    try {
+      return new URL(window.location.href).searchParams.get("view") === "preview" ? "preview" : "edit";
+    } catch (e) { return "edit"; }
+  }
+
   // ---------- Line items ----------
   var items = [];
 
   function itemRow(it, i) {
+    var uid = "item-" + i;
     var el = document.createElement("div");
     el.className = "item";
+    el.setAttribute("role", "group");
+    el.setAttribute("aria-label", "Line item " + (i + 1));
     el.innerHTML =
       '<div class="field" style="margin-bottom:8px">' +
-        '<label>Description (EN) · Опис</label>' +
-        '<input data-k="descEn" type="text" placeholder="Software development services" />' +
+        '<label for="' + uid + '-descEn">Description (EN) · Опис</label>' +
+        '<input id="' + uid + '-descEn" data-k="descEn" type="text" autocomplete="off" placeholder="Software development services…" />' +
       '</div>' +
       '<div class="field" style="margin-bottom:8px">' +
-        '<label>Description (UA) · Опис</label>' +
-        '<input data-k="descUa" type="text" placeholder="Послуги з розробки ПЗ" />' +
+        '<label for="' + uid + '-descUa">Description (UA) · Опис</label>' +
+        '<input id="' + uid + '-descUa" data-k="descUa" type="text" autocomplete="off" placeholder="Послуги з розробки ПЗ…" />' +
       '</div>' +
       '<div class="row3">' +
-        '<div class="field" style="margin:0"><label>Qty · К-сть</label><input data-k="qty" type="number" step="any" min="0" /></div>' +
-        '<div class="field" style="margin:0"><label>Unit · Од.</label><input data-k="unit" type="text" placeholder="hr / pc" /></div>' +
-        '<div class="field" style="margin:0"><label>Price · Ціна</label><input data-k="price" type="number" step="any" min="0" /></div>' +
+        '<div class="field" style="margin:0"><label for="' + uid + '-qty">Qty · К-сть</label><input id="' + uid + '-qty" data-k="qty" type="number" step="any" min="0" inputmode="decimal" /></div>' +
+        '<div class="field" style="margin:0"><label for="' + uid + '-unit">Unit · Од.</label><input id="' + uid + '-unit" data-k="unit" type="text" autocomplete="off" placeholder="hr / pc…" /></div>' +
+        '<div class="field" style="margin:0"><label for="' + uid + '-price">Price · Ціна</label><input id="' + uid + '-price" data-k="price" type="number" step="any" min="0" inputmode="decimal" /></div>' +
       '</div>' +
-      '<button class="item-del" data-act="del">✕ Remove · Видалити</button>';
+      '<button type="button" class="item-del" data-act="del" aria-label="Remove line item ' + (i + 1) + '">✕ Remove · Видалити</button>';
 
     el.querySelectorAll("input").forEach(function (inp) {
       var k = inp.getAttribute("data-k");
       inp.value = it[k] != null ? it[k] : "";
       inp.addEventListener("input", function () {
         it[k] = inp.value;
+        checkDirty();
         render();
       });
     });
@@ -912,11 +1108,12 @@
 
     var logo = "";
     try { logo = localStorage.getItem(LOGO_KEY) || ""; } catch (e) {}
+    var logoAlt = g("spName") ? esc(g("spName")) + " logo" : "Company logo";
 
     var html =
       '<div class="inv-top">' +
         '<div class="inv-title">' +
-          (logo ? '<img class="inv-logo" src="' + esc(logo) + '" alt="logo" />' : "") +
+          (logo ? '<img class="inv-logo" src="' + esc(logo) + '" alt="' + logoAlt + '" />' : "") +
           'INVOICE<small>РАХУНОК-ФАКТУРА</small></div>' +
         '<div class="inv-meta">' +
           '<div class="num">№ ' + (esc(g("invNo")) || "—") + "</div>" +
@@ -941,12 +1138,13 @@
       "</div>" +
 
       '<div class="items-scroll"><table class="items">' +
+        "<caption class=\"sr-only\">Invoice line items</caption>" +
         "<thead><tr>" +
-          "<th>Description<small>Опис</small></th>" +
-          '<th class="r">Qty<small>К-сть</small></th>' +
-          "<th>Unit<small>Од.</small></th>" +
-          '<th class="r">Price<small>Ціна</small></th>' +
-          '<th class="r">Amount<small>Сума</small></th>' +
+          '<th scope="col">Description<small>Опис</small></th>' +
+          '<th scope="col" class="r">Qty<small>К-сть</small></th>' +
+          '<th scope="col">Unit<small>Од.</small></th>' +
+          '<th scope="col" class="r">Price<small>Ціна</small></th>' +
+          '<th scope="col" class="r">Amount<small>Сума</small></th>' +
         "</tr></thead>" +
         "<tbody>" + rows + "</tbody>" +
       "</table></div>" +
@@ -973,9 +1171,12 @@
         '<div class="slot"><b>&nbsp;</b>Received / accepted · Замовник</div>' +
       "</div>" +
 
-      '<div class="foot">Generated with Invoice Builder · Дякуємо за співпрацю</div>';
+      '<div class="foot">Generated with <span translate="no">Invoice Builder</span> · Дякуємо за співпрацю</div>';
 
     $("page").innerHTML = html;
+
+    var invLabel = g("invNo") || "Draft";
+    document.title = "Invoice " + invLabel + " · Invoice Builder";
   }
 
   // ---------- Persistence ----------
@@ -984,7 +1185,9 @@
     DEFAULT_FIELDS.forEach(function (f) { data[f] = $(f).value; });
     try {
       localStorage.setItem(LS_KEY, JSON.stringify(data));
-      if (!silent) flash("Saved ✓");
+      if (!silent) {
+        announceStatus("Defaults saved.");
+      }
     } catch (e) { if (!silent) alert("Could not save: " + e.message); }
   }
 
@@ -1021,11 +1224,15 @@
   function renderHistory() {
     var box = $("historyList"); if (!box) return;
     var hist = loadHistory();
-    if (!hist.length) { box.innerHTML = '<p class="hint" style="padding:0">No saved invoices yet.</p>'; return; }
+    if (!hist.length) {
+      box.innerHTML = '<p class="hint" style="padding:0" role="status">No saved invoices yet. Save an invoice to see it here.</p>';
+      return;
+    }
     box.innerHTML = hist.map(function (h, i) {
+      var label = (h.invNo || "—") + " · " + (h.clName || "No client");
       return '<div class="item" style="display:flex;justify-content:space-between;align-items:center">' +
         '<span>' + esc(h.invNo || "—") + ' · ' + esc(h.clName || "") + '</span>' +
-        '<button class="btn" data-load="' + i + '">Load</button></div>';
+        '<button type="button" class="btn" data-load="' + i + '" aria-label="Load invoice ' + esc(h.invNo || (i + 1)) + '">Load</button></div>';
     }).join("");
     box.querySelectorAll("[data-load]").forEach(function (b) {
       b.addEventListener("click", function () {
@@ -1034,18 +1241,55 @@
         ["invNo","invDate","dueDate","currency","clName"].forEach(function (k) { if (h[k] != null) $(k).value = h[k]; });
         items = Array.isArray(h.items) ? h.items.slice() : [];
         if (!items.length) addItem(); else drawItems();
+        markClean();
         render();
+        announceStatus("Loaded invoice " + (h.invNo || "") + ".");
       });
     });
   }
 
   var flashT;
-  function flash(msg) {
-    var b = $("save");
-    var orig = b.textContent;
+  var flashOrig = {};
+  function flash(msg, btnId) {
+    var b = $(btnId || "save");
+    if (!b) return;
+    if (!flashOrig[b.id]) flashOrig[b.id] = b.textContent;
     b.textContent = msg;
+    announceStatus(msg.replace("✓", "").trim());
     clearTimeout(flashT);
-    flashT = setTimeout(function () { b.textContent = orig; }, 1500);
+    flashT = setTimeout(function () { b.textContent = flashOrig[b.id]; }, 1500);
+  }
+
+  function openDialog(dialogEl, triggerEl) {
+    dialogEl.hidden = false;
+    dialogEl._trigger = triggerEl;
+    var focusable = dialogEl.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    var first = focusable[0];
+    var last = focusable[focusable.length - 1];
+    if (first) first.focus();
+    dialogEl._trap = function (e) {
+      if (e.key === "Escape") { closeDialog(dialogEl); return; }
+      if (e.key !== "Tab") return;
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", dialogEl._trap);
+  }
+
+  function closeDialog(dialogEl) {
+    dialogEl.hidden = true;
+    document.removeEventListener("keydown", dialogEl._trap);
+    if (dialogEl._trigger) dialogEl._trigger.focus();
+  }
+
+  function doResetInvoice() {
+    items = [];
+    $("invNo").value = suggestNextNumber();
+    $("dueDate").value = "";
+    addItem();
+    markClean();
+    render();
+    announceStatus("Invoice reset. Business details kept.");
   }
 
   // ---------- Init ----------
@@ -1068,30 +1312,43 @@
     ALL_FIELDS.forEach(function (f) {
       var el = $(f);
       el.addEventListener("input", function () {
+        checkDirty();
         render();
       });
     });
 
-    $("addItem").addEventListener("click", function () { addItem(); });
+    $("addItem").addEventListener("click", function () { addItem(); checkDirty(); });
     $("print").addEventListener("click", function () { window.print(); });
-    $("save").addEventListener("click", function () { saveDefaults(false); });
+    $("save").addEventListener("click", function () {
+      withLoading($("save"), function () { saveDefaults(false); }, "Saving…", function () {
+        flash("Saved ✓", "save");
+      });
+    });
     $("saveHistory").addEventListener("click", function () {
-      var g = function (id) { return $(id).value; };
-      var entry = { savedAt: Date.now(), invNo: g("invNo"), invDate: g("invDate"),
-        dueDate: g("dueDate"), currency: g("currency"), clName: g("clName"), items: items };
-      var hist = loadHistory();
-      hist.unshift(entry);
-      saveHistory(hist);
-      renderHistory();
-      flash("Saved to history ✓");
+      withLoading($("saveHistory"), function () {
+        var g = function (id) { return $(id).value; };
+        var entry = { savedAt: Date.now(), invNo: g("invNo"), invDate: g("invDate"),
+          dueDate: g("dueDate"), currency: g("currency"), clName: g("clName"), items: items };
+        var hist = loadHistory();
+        hist.unshift(entry);
+        saveHistory(hist);
+        renderHistory();
+        markClean();
+        announceStatus("Invoice saved to history.");
+      }, "Saving…", function () {
+        flash("Saved to History ✓", "saveHistory");
+      });
     });
     $("reset").addEventListener("click", function () {
-      if (!confirm("Clear this invoice's line items and dates? Your saved business details stay.")) return;
-      items = [];
-      $("invNo").value = suggestNextNumber();
-      $("dueDate").value = "";
-      addItem();
-      render();
+      openDialog($("resetDialog"), $("reset"));
+    });
+    $("resetCancel").addEventListener("click", function () { closeDialog($("resetDialog")); });
+    $("resetConfirm").addEventListener("click", function () {
+      closeDialog($("resetDialog"));
+      doResetInvoice();
+    });
+    $("resetDialog").addEventListener("click", function (e) {
+      if (e.target === $("resetDialog")) closeDialog($("resetDialog"));
     });
 
     $("logoFile").addEventListener("change", function (e) {
@@ -1111,15 +1368,21 @@
       render();
     });
 
-    function setMobileView(view) {
+    function setMobileView(view, fromPopstate) {
       var app = document.querySelector(".app");
       app.classList.toggle("view-edit", view === "edit");
       app.classList.toggle("view-preview", view === "preview");
       $("mbEdit").classList.toggle("active", view === "edit");
       $("mbPreview").classList.toggle("active", view === "preview");
-      $("mbEdit").setAttribute("aria-pressed", view === "edit" ? "true" : "false");
-      $("mbPreview").setAttribute("aria-pressed", view === "preview" ? "true" : "false");
-      if (view === "preview") window.scrollTo(0, 0);
+      $("mbEdit").setAttribute("aria-selected", view === "edit" ? "true" : "false");
+      $("mbPreview").setAttribute("aria-selected", view === "preview" ? "true" : "false");
+      $("mbEdit").tabIndex = view === "edit" ? 0 : -1;
+      $("mbPreview").tabIndex = view === "preview" ? 0 : -1;
+      if (!fromPopstate) syncUrlView(view, false);
+      if (view === "preview") {
+        window.scrollTo(0, 0);
+        $("page").focus({ preventScroll: true });
+      }
     }
     $("mbEdit").addEventListener("click", function () { setMobileView("edit"); });
     $("mbPreview").addEventListener("click", function () { setMobileView("preview"); render(); });
@@ -1128,6 +1391,33 @@
       render();
       setTimeout(function () { window.print(); }, 150);
     });
+
+    var mobileTabs = [$("mbEdit"), $("mbPreview")];
+    mobileTabs.forEach(function (tab, idx) {
+      tab.addEventListener("keydown", function (e) {
+        if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+          e.preventDefault();
+          var next = e.key === "ArrowRight" ? (idx + 1) % mobileTabs.length : (idx + mobileTabs.length - 1) % mobileTabs.length;
+          mobileTabs[next].click();
+          mobileTabs[next].focus();
+        }
+      });
+    });
+
+    window.addEventListener("popstate", function () {
+      setMobileView(readUrlView(), true);
+    });
+
+    window.addEventListener("beforeunload", function (e) {
+      if (checkDirty()) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    });
+
+    setMobileView(readUrlView(), true);
+    syncUrlView(readUrlView(), true);
+    markClean();
 
     renderHistory();
     render();
