@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#2563eb" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<title>Invoice Builder · Генератор рахунків</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --panel: #ffffff;
+    --ink: #1a1d24;
+    --muted: #6b7280;
+    --line: #e4e7ec;
+    --accent: #2563eb;
+    --accent-soft: #eff4ff;
+    --radius: 10px;
+    --shadow: 0 1px 3px rgba(16,24,40,.08), 0 1px 2px rgba(16,24,40,.04);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ---------- App layout ---------- */
+  .app {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    min-height: 100vh;
+  }
+  .editor {
+    background: var(--panel);
+    border-right: 1px solid var(--line);
+    padding: 0 0 80px;
+    overflow-y: auto;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+  }
+  .preview-wrap {
+    padding: 32px;
+    overflow-y: auto;
+    height: 100vh;
+  }
+
+  /* ---------- Editor ---------- */
+  .editor-head {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--line);
+    position: sticky;
+    top: 0;
+    background: var(--panel);
+    z-index: 5;
+  }
+  .editor-head h1 {
+    font-size: 16px;
+    margin: 0 0 2px;
+    letter-spacing: -.01em;
+  }
+  .editor-head p { margin: 0; color: var(--muted); font-size: 12px; }
+
+  details.section {
+    border-bottom: 1px solid var(--line);
+  }
+  details.section > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 14px 24px;
+    font-weight: 600;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+  }
+  details.section > summary::-webkit-details-marker { display: none; }
+  details.section > summary::before {
+    content: "›";
+    transition: transform .15s ease;
+    color: var(--muted);
+    font-size: 18px;
+    line-height: 1;
+  }
+  details.section[open] > summary::before { transform: rotate(90deg); }
+  .section-body { padding: 4px 24px 20px; }
+
+  .field { margin-bottom: 12px; }
+  .field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+  }
+  .field input, .field textarea, .field select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--ink);
+    background: #fff;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .field textarea { resize: vertical; min-height: 56px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* ---------- Line items ---------- */
+  .item {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 10px;
+    background: #fafbfc;
+  }
+  .item .row3 { display: grid; grid-template-columns: 1fr 70px 90px; gap: 8px; }
+  .item-del {
+    margin-top: 8px;
+    background: none;
+    border: none;
+    color: #dc2626;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 0;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn:hover { background: #f9fafb; }
+  .btn-block { width: 100%; }
+  .btn-accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-accent:hover { background: #1d4ed8; }
+
+  /* ---------- Toolbar ---------- */
+  .toolbar {
+    position: sticky;
+    bottom: 0;
+    background: rgba(255,255,255,.95);
+    backdrop-filter: blur(6px);
+    border-top: 1px solid var(--line);
+    padding: 12px 24px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .toolbar .btn { flex: 1; }
+  .hint { font-size: 11px; color: var(--muted); padding: 0 24px 12px; }
+
+  /* ---------- Invoice document ---------- */
+  .page {
+    background: #fff;
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 18mm 16mm;
+    box-shadow: 0 4px 24px rgba(16,24,40,.12);
+    color: #111827;
+    font-size: 11.5px;
+    line-height: 1.55;
+  }
+
+  .inv-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 2px solid #111827;
+    padding-bottom: 16px;
+    margin-bottom: 22px;
+  }
+  .inv-title { font-size: 30px; font-weight: 700; letter-spacing: -.02em; line-height: 1.05; }
+  .inv-logo { display:block; max-height:56px; max-width:220px; margin-bottom:8px; object-fit:contain; }
+  .inv-title small { display: block; font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; margin-top: 2px; }
+  .inv-meta { text-align: right; font-size: 11px; }
+  .inv-meta .num { font-size: 16px; font-weight: 700; }
+  .inv-meta div { margin-bottom: 2px; }
+  .lbl { color: var(--muted); }
+
+  .parties {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    margin-bottom: 24px;
+  }
+  .party h3 {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+    margin: 0 0 6px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 4px;
+  }
+  .party .name { font-weight: 700; font-size: 13px; margin-bottom: 3px; }
+  .party .line { color: #374151; }
+  .party .meta-line { font-size: 10.5px; color: #4b5563; margin-top: 2px; }
+  .party .meta-line b { color: #111827; }
+
+  table.items {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 16px;
+  }
+  table.items thead th {
+    text-align: left;
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: #fff;
+    background: #111827;
+    padding: 8px 10px;
+    font-weight: 600;
+  }
+  table.items thead th small { display:block; font-weight:400; color:#cbd5e1; text-transform:none; letter-spacing:0; }
+  table.items th.r, table.items td.r { text-align: right; }
+  table.items tbody td {
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  table.items tbody td .desc-ua { color: var(--muted); font-size: 10px; }
+
+  .totals { display: flex; justify-content: flex-end; margin-bottom: 22px; }
+  .totals table { border-collapse: collapse; min-width: 240px; }
+  .totals td { padding: 5px 10px; }
+  .totals td.r { text-align: right; }
+  .totals tr.grand td {
+    border-top: 2px solid #111827;
+    font-size: 15px;
+    font-weight: 700;
+    padding-top: 8px;
+  }
+  .totals .lbl { color: var(--muted); }
+
+  .amount-words { margin: -8px 0 22px; font-size: 10.5px; }
+  .amount-words .lbl { display:block; font-size:9px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin-bottom:3px; }
+
+  .pay {
+    background: #f9fafb;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 18px;
+  }
+  .pay h3 {
+    font-size: 10px; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--accent); margin: 0 0 10px;
+  }
+  .pay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 28px; }
+  .pay-grid .pi { font-size: 10.5px; }
+  .pay-grid .pi .lbl { display: block; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .04em; }
+  .pay-grid .pi .val { font-weight: 600; color: #111827; word-break: break-word; }
+  .pay-note { grid-column: 1 / -1; margin-top: 4px; padding-top: 8px; border-top: 1px dashed var(--line); }
+
+  .notes { font-size: 10.5px; color: #4b5563; margin-bottom: 24px; }
+  .notes .lbl { display:block; font-size:9px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin-bottom:3px; }
+
+  .sign { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 36px; }
+  .sign .slot { border-top: 1px solid #9ca3af; padding-top: 6px; font-size: 10px; color: var(--muted); }
+  .sign .slot b { display:block; color:#111827; font-size:11px; }
+
+  .foot { margin-top: 28px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 9px; color: #9ca3af; text-align: center; }
+
+  .empty-items { color: var(--muted); font-style: italic; padding: 16px 10px; }
+
+  .items-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 16px; }
+
+  /* ---------- Mobile nav (hidden on desktop) ---------- */
+  .mobile-bar {
+    display: none;
+  }
+
+  /* ---------- Print ---------- */
+  @media print {
+    .editor, .toolbar, .mobile-bar { display: none !important; }
+    .app { display: block; }
+    .app.view-edit .preview-wrap { display: block !important; }
+    .preview-wrap { padding: 0; height: auto; overflow: visible; }
+    .page { box-shadow: none; margin: 0; width: 100%; min-height: auto; padding: 14mm 14mm; }
+    body { background: #fff; }
+    @page { size: A4; margin: 0; }
+  }
+
+  @media (max-width: 920px) {
+    body { padding-bottom: env(safe-area-inset-bottom, 0); }
+
+    .app { grid-template-columns: 1fr; }
+    .app.view-edit .preview-wrap { display: none; }
+    .app.view-preview .editor { display: none; }
+
+    .editor {
+      height: auto;
+      position: static;
+      padding-bottom: calc(120px + env(safe-area-inset-bottom, 0));
+    }
+    .preview-wrap {
+      height: auto;
+      min-height: calc(100dvh - 56px - env(safe-area-inset-bottom, 0));
+      padding: 16px 12px calc(72px + env(safe-area-inset-bottom, 0));
+    }
+    .page {
+      width: 100%;
+      min-height: auto;
+      padding: 14mm 10mm;
+      font-size: 10.5px;
+    }
+
+    .editor-head { padding: 16px 18px; }
+    details.section > summary { padding: 14px 18px; }
+    .section-body { padding: 4px 18px 20px; }
+    .hint { padding: 0 18px 12px; }
+
+    .row { grid-template-columns: 1fr; }
+    .item .row3 { grid-template-columns: 1fr 1fr; }
+    .item .row3 .field:last-child { grid-column: 1 / -1; }
+
+    .field input, .field textarea, .field select {
+      font-size: 16px;
+      padding: 10px 12px;
+    }
+    .btn {
+      min-height: 44px;
+      padding: 10px 14px;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .item-del { min-height: 44px; padding: 8px 0; }
+
+    .toolbar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: calc(56px + env(safe-area-inset-bottom, 0));
+      z-index: 20;
+      padding: 10px 12px;
+      gap: 6px;
+    }
+    .toolbar .btn { flex: 1 1 calc(50% - 3px); min-width: 0; font-size: 12px; }
+
+    .mobile-bar {
+      display: flex;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 30;
+      background: var(--panel);
+      border-top: 1px solid var(--line);
+      padding-bottom: env(safe-area-inset-bottom, 0);
+      box-shadow: 0 -2px 12px rgba(16,24,40,.08);
+    }
+    .mobile-bar button {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      min-height: 56px;
+      padding: 8px 4px;
+      border: none;
+      background: none;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mobile-bar button.active { color: var(--accent); }
+    .mobile-bar button svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+    .inv-top { flex-direction: column; gap: 12px; }
+    .inv-meta { text-align: left; }
+    .inv-title { font-size: 24px; }
+    .parties { grid-template-columns: 1fr; gap: 16px; }
+    .pay-grid { grid-template-columns: 1fr; }
+    .sign { grid-template-columns: 1fr; gap: 24px; }
+    .totals { justify-content: stretch; }
+    .totals table { width: 100%; min-width: 0; }
+    table.items { min-width: 520px; }
+    .items-scroll { margin: 0 -4px 16px; padding: 0 4px; }
+
+    #historyList .item { flex-direction: column; align-items: stretch !important; gap: 8px; }
+    #historyList .item .btn { width: 100%; }
+  }
+
+  @media (max-width: 920px) and (min-width: 481px) {
+    .toolbar .btn { flex: 1 1 auto; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<div class="app view-edit">
+  <!-- ================= EDITOR ================= -->
+  <div class="editor">
+    <div class="editor-head">
+      <h1>Invoice Builder</h1>
+      <p>Генератор рахунків · English &amp; Українська</p>
+    </div>
+
+    <!-- Invoice details -->
+    <details class="section" open>
+      <summary>Invoice details · Деталі рахунку</summary>
+      <div class="section-body">
+        <div class="row">
+          <div class="field">
+            <label>Invoice № · Номер</label>
+            <input id="invNo" type="text" placeholder="2026-001" />
+          </div>
+          <div class="field">
+            <label>Date · Дата</label>
+            <input id="invDate" type="date" />
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Due date · Термін оплати</label>
+            <input id="dueDate" type="date" />
+          </div>
+          <div class="field">
+            <label>Currency · Валюта</label>
+            <select id="currency">
+              <option value="USD">USD — US Dollar</option>
+              <option value="EUR">EUR — Euro</option>
+              <option value="UAH">UAH — Гривня</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Contract ref · Договір (optional)</label>
+          <input id="contractRef" type="text" placeholder="№ 12 від 01.01.2026" />
+        </div>
+      </div>
+    </details>
+
+    <!-- Service provider (Ukraine) -->
+    <details class="section" open>
+      <summary>Service provider — ФОП (Ukraine)</summary>
+      <div class="section-body">
+        <div class="field">
+          <label>Logo (optional) · Логотип</label>
+          <input id="logoFile" type="file" accept="image/*" />
+          <button class="btn" id="logoClear" type="button" style="margin-top:6px">Remove logo</button>
+        </div>
+        <div class="field">
+          <label>Full name · ПІБ</label>
+          <input id="spName" type="text" placeholder="Іваненко Іван Іванович" />
+        </div>
+        <div class="field">
+          <label>Status (EN) · e.g. Individual Entrepreneur</label>
+          <input id="spStatusEn" type="text" placeholder="Individual Entrepreneur (FOP)" />
+        </div>
+        <div class="field">
+          <label>Status (UA) · Статус</label>
+          <input id="spStatusUa" type="text" placeholder="Фізична особа-підприємець (ФОП)" />
+        </div>
+        <div class="field">
+          <label>РНОКПП / Tax ID</label>
+          <input id="spTaxId" type="text" placeholder="1234567890" />
+        </div>
+        <div class="field">
+          <label>Tax group / notes · Група єдиного податку</label>
+          <input id="spTaxGroup" type="text" placeholder="Single tax, Group 3 (5%) · 3 група, ЄП 5%" />
+        </div>
+        <div class="field">
+          <label>Address (EN) · Адреса</label>
+          <textarea id="spAddrEn" placeholder="вул. Хрещатик 1, Київ, 01001, Ukraine"></textarea>
+        </div>
+        <div class="field">
+          <label>Address (UA) · Адреса</label>
+          <textarea id="spAddrUa" placeholder="вул. Хрещатик 1, м. Київ, 01001, Україна"></textarea>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Email</label>
+            <input id="spEmail" type="text" placeholder="name@email.com" />
+          </div>
+          <div class="field">
+            <label>Phone · Телефон</label>
+            <input id="spPhone" type="text" placeholder="+380 ..." />
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- Client (US) -->
+    <details class="section" open>
+      <summary>Bill to — Client (USA)</summary>
+      <div class="section-body">
+        <div class="field">
+          <label>Company name · Назва компанії</label>
+          <input id="clName" type="text" placeholder="Acme Inc." />
+        </div>
+        <div class="field">
+          <label>Address · Адреса</label>
+          <textarea id="clAddr" placeholder="123 Market St, San Francisco, CA 94105, USA"></textarea>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Tax ID / EIN</label>
+            <input id="clTaxId" type="text" placeholder="optional" />
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input id="clEmail" type="text" placeholder="ap@acme.com" />
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- Line items -->
+    <details class="section" open>
+      <summary>Line items · Послуги / товари</summary>
+      <div class="section-body">
+        <div id="items"></div>
+        <button class="btn btn-block" id="addItem">+ Add line · Додати рядок</button>
+      </div>
+    </details>
+
+    <!-- Banking -->
+    <details class="section">
+      <summary>Payment details · Реквізити для оплати</summary>
+      <div class="section-body">
+        <div class="field">
+          <label>Beneficiary name · Отримувач</label>
+          <input id="bkBenef" type="text" placeholder="defaults to provider name" />
+        </div>
+        <div class="field">
+          <label>IBAN account · Рахунок (IBAN)</label>
+          <input id="bkIban" type="text" placeholder="UA00 0000 0000 0000 0000 0000 0000 0" />
+        </div>
+        <div class="field">
+          <label>Bank name · Назва банку</label>
+          <input id="bkBank" type="text" placeholder="JSC Universal Bank" />
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Bank SWIFT / BIC</label>
+            <input id="bkSwift" type="text" placeholder="XXXXUAXX" />
+          </div>
+          <div class="field">
+            <label>Bank address · Адреса банку</label>
+            <input id="bkBankAddr" type="text" placeholder="Kyiv, Ukraine" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Correspondent bank · Банк-кореспондент</label>
+          <input id="bkCorr" type="text" placeholder="e.g. Citibank N.A., New York" />
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Correspondent SWIFT</label>
+            <input id="bkCorrSwift" type="text" placeholder="CITIUS33" />
+          </div>
+          <div class="field">
+            <label>Correspondent account</label>
+            <input id="bkCorrAcct" type="text" placeholder="account # at corr. bank" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Payment reference · Призначення платежу</label>
+          <input id="bkPurpose" type="text" placeholder="Payment for services under Invoice № ..." />
+        </div>
+      </div>
+    </details>
+
+    <!-- Notes -->
+    <details class="section">
+      <summary>Notes &amp; signatures · Примітки</summary>
+      <div class="section-body">
+        <div class="field">
+          <label>Notes (EN)</label>
+          <textarea id="notesEn" placeholder="Services exempt from VAT. Payment within 14 days."></textarea>
+        </div>
+        <div class="field">
+          <label>Notes (UA) · Примітки</label>
+          <textarea id="notesUa" placeholder="Без ПДВ. Оплата протягом 14 днів."></textarea>
+        </div>
+      </div>
+    </details>
+
+    <details class="section">
+      <summary>History · Історія</summary>
+      <div class="section-body">
+        <div id="historyList"></div>
+      </div>
+    </details>
+
+    <p class="hint">Your business &amp; banking details are saved in this browser automatically. Reuse them on every invoice — just change the line items.</p>
+
+    <div class="toolbar">
+      <button class="btn btn-accent" id="print">⤓ Save PDF / Print</button>
+      <button class="btn" id="save">Save defaults</button>
+      <button class="btn" id="saveHistory">Save to history</button>
+      <button class="btn" id="reset">Reset</button>
+    </div>
+  </div>
+
+  <!-- ================= PREVIEW ================= -->
+  <div class="preview-wrap">
+    <div class="page" id="page"></div>
+  </div>
+</div>
+
+<nav class="mobile-bar" aria-label="Mobile navigation">
+  <button type="button" id="mbEdit" class="active" aria-pressed="true">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    Edit
+  </button>
+  <button type="button" id="mbPreview" aria-pressed="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    Preview
+  </button>
+  <button type="button" id="mbPrint">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    PDF
+  </button>
+</nav>
+
+<script>
+(function () {
+  "use strict";
+
+  var LS_KEY = "invoice_builder_v1";
+  var HIST_KEY = "invoice_builder_history";
+  var LOGO_KEY = "invoice_builder_logo";
+  var DEFAULT_FIELDS = [
+    "spName","spStatusEn","spStatusUa","spTaxId","spTaxGroup","spAddrEn","spAddrUa","spEmail","spPhone",
+    "clName","clAddr","clTaxId","clEmail",
+    "bkBenef","bkIban","bkBank","bkSwift","bkBankAddr","bkCorr","bkCorrSwift","bkCorrAcct","bkPurpose",
+    "notesEn","notesUa","currency","contractRef"
+  ];
+  var ALL_FIELDS = DEFAULT_FIELDS.concat(["invNo","invDate","dueDate"]);
+
+  var CUR = { USD: "$", EUR: "€", UAH: "₴" };
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return (s == null ? "" : String(s))
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function nl2br(s) { return esc(s).replace(/\n/g, "<br>"); }
+
+  // ---------- Line items ----------
+  var items = [];
+
+  function itemRow(it, i) {
+    var el = document.createElement("div");
+    el.className = "item";
+    el.innerHTML =
+      '<div class="field" style="margin-bottom:8px">' +
+        '<label>Description (EN) · Опис</label>' +
+        '<input data-k="descEn" type="text" placeholder="Software development services" />' +
+      '</div>' +
+      '<div class="field" style="margin-bottom:8px">' +
+        '<label>Description (UA) · Опис</label>' +
+        '<input data-k="descUa" type="text" placeholder="Послуги з розробки ПЗ" />' +
+      '</div>' +
+      '<div class="row3">' +
+        '<div class="field" style="margin:0"><label>Qty · К-сть</label><input data-k="qty" type="number" step="any" min="0" /></div>' +
+        '<div class="field" style="margin:0"><label>Unit · Од.</label><input data-k="unit" type="text" placeholder="hr / pc" /></div>' +
+        '<div class="field" style="margin:0"><label>Price · Ціна</label><input data-k="price" type="number" step="any" min="0" /></div>' +
+      '</div>' +
+      '<button class="item-del" data-act="del">✕ Remove · Видалити</button>';
+
+    el.querySelectorAll("input").forEach(function (inp) {
+      var k = inp.getAttribute("data-k");
+      inp.value = it[k] != null ? it[k] : "";
+      inp.addEventListener("input", function () {
+        it[k] = inp.value;
+        render();
+      });
+    });
+    el.querySelector('[data-act="del"]').addEventListener("click", function () {
+      items.splice(i, 1);
+      drawItems();
+      render();
+    });
+    return el;
+  }
+
+  function drawItems() {
+    var box = $("items");
+    box.innerHTML = "";
+    items.forEach(function (it, i) { box.appendChild(itemRow(it, i)); });
+  }
+
+  function addItem(data) {
+    items.push(data || { descEn: "", descUa: "", qty: "1", unit: "", price: "" });
+    drawItems();
+    render();
+  }
+
+  // ---------- Money ----------
+  function money(n, cur) {
+    var sym = CUR[cur] || "";
+    var v = isFinite(n) ? n : 0;
+    var locale = cur === "UAH" ? "uk-UA" : "en-US";
+    return sym + v.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function amountInWords(n, cur) {
+    var v = isFinite(n) ? n : 0;
+    var intPart = Math.floor(v);
+    var frac = Math.round((v - intPart) * 100);
+
+    var enOnes = ["zero","one","two","three","four","five","six","seven","eight","nine","ten",
+      "eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen"];
+    var enTens = ["","","twenty","thirty","forty","fifty","sixty","seventy","eighty","ninety"];
+
+    function enWords(num) {
+      if (num === 0) return "zero";
+      var parts = [];
+      if (num >= 1000000) {
+        var mil = Math.floor(num / 1000000);
+        parts.push(enWords(mil) + " million");
+        num = num % 1000000;
+      }
+      if (num >= 1000) {
+        var th = Math.floor(num / 1000);
+        parts.push((th === 1 ? "one" : enWords(th)) + " thousand");
+        num = num % 1000;
+      }
+      if (num >= 100) {
+        parts.push(enOnes[Math.floor(num / 100)] + " hundred");
+        num = num % 100;
+      }
+      if (num >= 20) {
+        parts.push(enTens[Math.floor(num / 10)] + (num % 10 ? "-" + enOnes[num % 10] : ""));
+      } else if (num > 0) {
+        parts.push(enOnes[num]);
+      }
+      return parts.join(" ");
+    }
+
+    var uaOnes = ["нуль","один","два","три","чотири","п'ять","шість","сім","вісім","дев'ять","десять",
+      "одинадцять","дванадцять","тринадцять","чотирнадцять","п'ятнадцять","шістнадцять","сімнадцять","вісімнадцять","дев'ятнадцять"];
+    var uaTens = ["","","двадцять","тридцять","сорок","п'ятдесят","шістдесят","сімдесят","вісімдесят","дев'яносто"];
+    var uaHundreds = ["","сто","двісті","триста","чотириста","п'ятсот","шістьсот","сімсот","вісімсот","дев'ятсот"];
+
+    function uaScaleWord(n, one, few, many) {
+      var mod10 = n % 10;
+      var mod100 = n % 100;
+      if (mod10 === 1 && mod100 !== 11) return one;
+      if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+      return many;
+    }
+
+    function uaWordsUnder1000(num, feminine) {
+      if (num === 0) return "";
+      var parts = [];
+      if (num >= 100) {
+        parts.push(uaHundreds[Math.floor(num / 100)]);
+        num = num % 100;
+      }
+      if (num >= 20) {
+        parts.push(uaTens[Math.floor(num / 10)] + (num % 10 ? " " + uaOnes[num % 10] : ""));
+      } else if (num > 0) {
+        if (feminine && num === 1) parts.push("одна");
+        else if (feminine && num === 2) parts.push("дві");
+        else parts.push(uaOnes[num]);
+      }
+      return parts.join(" ").trim();
+    }
+
+    function uaWords(num) {
+      if (num === 0) return "нуль";
+      var parts = [];
+      if (num >= 1000000) {
+        var mil = Math.floor(num / 1000000);
+        parts.push(uaWordsUnder1000(mil, false) + " " + uaScaleWord(mil, "мільйон", "мільйони", "мільйонів"));
+        num = num % 1000000;
+      }
+      if (num >= 1000) {
+        var th = Math.floor(num / 1000);
+        parts.push(uaWordsUnder1000(th, true) + " " + uaScaleWord(th, "тисяча", "тисячі", "тисяч"));
+        num = num % 1000;
+      }
+      var rest = uaWordsUnder1000(num, false);
+      if (rest) parts.push(rest);
+      return parts.join(" ").replace(/\s+/g, " ").trim();
+    }
+
+    var units = {
+      USD: { en: ["US dollars","cents"], ua: ["доларів США","центів"] },
+      EUR: { en: ["euros","cents"],      ua: ["євро","центів"] },
+      UAH: { en: ["hryvnias","kopiykas"], ua: ["гривень","копійок"] }
+    }[cur] || { en: ["",""], ua: ["",""] };
+
+    function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+    var pad = (frac < 10 ? "0" : "") + frac;
+    return {
+      en: cap((enWords(intPart) + " " + units.en[0] + " " + pad + " " + units.en[1]).trim()),
+      ua: cap((uaWords(intPart) + " " + units.ua[0] + " " + pad + " " + units.ua[1]).trim())
+    };
+  }
+
+  function fmtDate(v) {
+    if (!v) return "—";
+    var d = new Date(v + "T00:00:00");
+    if (isNaN(d)) return v;
+    return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  }
+
+  // ---------- Render invoice ----------
+  function render() {
+    var g = function (id) { return $(id).value.trim(); };
+    var cur = g("currency") || "USD";
+
+    var total = 0;
+    var rows = "";
+    var has = items.some(function (it) { return it.descEn || it.descUa || it.price; });
+
+    if (!has) {
+      rows = '<tr><td colspan="5" class="empty-items">Add line items to see them here · Додайте рядки</td></tr>';
+    } else {
+      items.forEach(function (it) {
+        var qty = parseFloat(it.qty) || 0;
+        var price = parseFloat(it.price) || 0;
+        var amt = qty * price;
+        total += amt;
+        var desc = esc(it.descEn || "");
+        if (it.descUa) desc += '<div class="desc-ua">' + esc(it.descUa) + "</div>";
+        rows +=
+          "<tr>" +
+            "<td>" + (desc || "—") + "</td>" +
+            '<td class="r">' + (qty || "—") + "</td>" +
+            "<td>" + esc(it.unit || "") + "</td>" +
+            '<td class="r">' + money(price, cur) + "</td>" +
+            '<td class="r">' + money(amt, cur) + "</td>" +
+          "</tr>";
+      });
+    }
+
+    var benef = g("bkBenef") || g("spName");
+
+    // payment items (only render rows that have data)
+    var payItems = [
+      ["Beneficiary · Отримувач", benef],
+      ["IBAN · Рахунок", g("bkIban")],
+      ["Bank · Банк", g("bkBank")],
+      ["SWIFT / BIC", g("bkSwift")],
+      ["Bank address · Адреса банку", g("bkBankAddr")],
+      ["Correspondent bank · Банк-кореспондент", g("bkCorr")],
+      ["Corr. SWIFT", g("bkCorrSwift")],
+      ["Corr. account · Рахунок кор.", g("bkCorrAcct")]
+    ];
+    var payHtml = payItems.filter(function (p) { return p[1]; }).map(function (p) {
+      return '<div class="pi"><span class="lbl">' + esc(p[0]) + '</span><span class="val">' + esc(p[1]) + "</span></div>";
+    }).join("");
+    var purpose = g("bkPurpose");
+    if (purpose) {
+      payHtml += '<div class="pi pay-note"><span class="lbl">Payment reference · Призначення платежу</span><span class="val">' + esc(purpose) + "</span></div>";
+    }
+
+    // Provider meta lines
+    var spMeta = "";
+    if (g("spStatusEn") || g("spStatusUa")) {
+      spMeta += '<div class="meta-line">' + esc(g("spStatusEn")) + (g("spStatusUa") ? " · " + esc(g("spStatusUa")) : "") + "</div>";
+    }
+    if (g("spTaxId")) spMeta += '<div class="meta-line"><b>РНОКПП / Tax ID:</b> ' + esc(g("spTaxId")) + "</div>";
+    if (g("spTaxGroup")) spMeta += '<div class="meta-line">' + esc(g("spTaxGroup")) + "</div>";
+    var spAddr = g("spAddrEn");
+    if (g("spAddrUa") && g("spAddrUa") !== g("spAddrEn")) spAddr = (spAddr ? spAddr + "\n" : "") + g("spAddrUa");
+    if (spAddr) spMeta += '<div class="line">' + nl2br(spAddr) + "</div>";
+    var spContact = [g("spEmail"), g("spPhone")].filter(Boolean).join(" · ");
+    if (spContact) spMeta += '<div class="meta-line">' + esc(spContact) + "</div>";
+
+    // Client meta
+    var clMeta = "";
+    if (g("clAddr")) clMeta += '<div class="line">' + nl2br(g("clAddr")) + "</div>";
+    if (g("clTaxId")) clMeta += '<div class="meta-line"><b>Tax ID / EIN:</b> ' + esc(g("clTaxId")) + "</div>";
+    if (g("clEmail")) clMeta += '<div class="meta-line">' + esc(g("clEmail")) + "</div>";
+
+    var notes = "";
+    if (g("notesEn") || g("notesUa")) {
+      notes =
+        '<div class="notes">' +
+          '<span class="lbl">Notes · Примітки</span>' +
+          (g("notesEn") ? nl2br(g("notesEn")) + "<br>" : "") +
+          (g("notesUa") ? '<span style="color:#6b7280">' + nl2br(g("notesUa")) + "</span>" : "") +
+        "</div>";
+    }
+
+    var words = amountInWords(total, cur);
+
+    var logo = "";
+    try { logo = localStorage.getItem(LOGO_KEY) || ""; } catch (e) {}
+
+    var html =
+      '<div class="inv-top">' +
+        '<div class="inv-title">' +
+          (logo ? '<img class="inv-logo" src="' + esc(logo) + '" alt="logo" />' : "") +
+          'INVOICE<small>РАХУНОК-ФАКТУРА</small></div>' +
+        '<div class="inv-meta">' +
+          '<div class="num">№ ' + (esc(g("invNo")) || "—") + "</div>" +
+          '<div><span class="lbl">Date · Дата:</span> ' + fmtDate(g("invDate")) + "</div>" +
+          (g("dueDate") ? '<div><span class="lbl">Due · Оплатити до:</span> ' + fmtDate(g("dueDate")) + "</div>" : "") +
+          '<div><span class="lbl">Currency · Валюта:</span> ' + esc(cur) + "</div>" +
+          (g("contractRef") ? '<div><span class="lbl">Contract · Договір:</span> ' + esc(g("contractRef")) + "</div>" : "") +
+        "</div>" +
+      "</div>" +
+
+      '<div class="parties">' +
+        '<div class="party">' +
+          "<h3>From · Виконавець</h3>" +
+          '<div class="name">' + (esc(g("spName")) || "Your name · ПІБ") + "</div>" +
+          spMeta +
+        "</div>" +
+        '<div class="party">' +
+          "<h3>Bill to · Замовник</h3>" +
+          '<div class="name">' + (esc(g("clName")) || "Client company") + "</div>" +
+          clMeta +
+        "</div>" +
+      "</div>" +
+
+      '<div class="items-scroll"><table class="items">' +
+        "<thead><tr>" +
+          "<th>Description<small>Опис</small></th>" +
+          '<th class="r">Qty<small>К-сть</small></th>' +
+          "<th>Unit<small>Од.</small></th>" +
+          '<th class="r">Price<small>Ціна</small></th>' +
+          '<th class="r">Amount<small>Сума</small></th>' +
+        "</tr></thead>" +
+        "<tbody>" + rows + "</tbody>" +
+      "</table></div>" +
+
+      '<div class="totals"><table>' +
+        '<tr><td class="lbl">Subtotal · Проміжний підсумок</td><td class="r">' + money(total, cur) + "</td></tr>" +
+        '<tr class="grand"><td>TOTAL DUE · ДО СПЛАТИ</td><td class="r">' + money(total, cur) + "</td></tr>" +
+      "</table></div>" +
+
+      '<div class="amount-words">' +
+        '<span class="lbl">Amount in words · Сума словами</span>' +
+        '<div>' + esc(words.en) + '</div>' +
+        '<div style="color:#6b7280">' + esc(words.ua) + '</div>' +
+      "</div>" +
+
+      (payHtml ?
+        '<div class="pay"><h3>Payment details · Платіжні реквізити</h3><div class="pay-grid">' + payHtml + "</div></div>"
+        : "") +
+
+      notes +
+
+      '<div class="sign">' +
+        '<div class="slot"><b>' + (esc(g("spName")) || "&nbsp;") + "</b>Service provider · Виконавець</div>" +
+        '<div class="slot"><b>&nbsp;</b>Received / accepted · Замовник</div>' +
+      "</div>" +
+
+      '<div class="foot">Generated with Invoice Builder · Дякуємо за співпрацю</div>';
+
+    $("page").innerHTML = html;
+  }
+
+  // ---------- Persistence ----------
+  function saveDefaults(silent) {
+    var data = {};
+    DEFAULT_FIELDS.forEach(function (f) { data[f] = $(f).value; });
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(data));
+      if (!silent) flash("Saved ✓");
+    } catch (e) { if (!silent) alert("Could not save: " + e.message); }
+  }
+
+  function loadDefaults() {
+    var raw;
+    try { raw = localStorage.getItem(LS_KEY); } catch (e) { return; }
+    if (!raw) return;
+    var data;
+    try { data = JSON.parse(raw); } catch (e) { return; }
+    DEFAULT_FIELDS.forEach(function (f) { if (data[f] != null) $(f).value = data[f]; });
+  }
+
+  function loadHistory() {
+    try { return JSON.parse(localStorage.getItem(HIST_KEY)) || []; }
+    catch (e) { return []; }
+  }
+
+  function saveHistory(list) {
+    try { localStorage.setItem(HIST_KEY, JSON.stringify(list)); } catch (e) {}
+  }
+
+  function suggestNextNumber() {
+    var hist = loadHistory();
+    var year = new Date().getFullYear();
+    var max = 0;
+    hist.forEach(function (h) {
+      var m = /(\d{4})-(\d+)/.exec(h.invNo || "");
+      if (m && +m[1] === year) max = Math.max(max, +m[2]);
+    });
+    var pad = function (x) { return x < 10 ? "00" + x : x < 100 ? "0" + x : "" + x; };
+    return year + "-" + pad(max + 1);
+  }
+
+  function renderHistory() {
+    var box = $("historyList"); if (!box) return;
+    var hist = loadHistory();
+    if (!hist.length) { box.innerHTML = '<p class="hint" style="padding:0">No saved invoices yet.</p>'; return; }
+    box.innerHTML = hist.map(function (h, i) {
+      return '<div class="item" style="display:flex;justify-content:space-between;align-items:center">' +
+        '<span>' + esc(h.invNo || "—") + ' · ' + esc(h.clName || "") + '</span>' +
+        '<button class="btn" data-load="' + i + '">Load</button></div>';
+    }).join("");
+    box.querySelectorAll("[data-load]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var h = loadHistory()[+b.getAttribute("data-load")];
+        if (!h) return;
+        ["invNo","invDate","dueDate","currency","clName"].forEach(function (k) { if (h[k] != null) $(k).value = h[k]; });
+        items = Array.isArray(h.items) ? h.items.slice() : [];
+        if (!items.length) addItem(); else drawItems();
+        render();
+      });
+    });
+  }
+
+  var flashT;
+  function flash(msg) {
+    var b = $("save");
+    var orig = b.textContent;
+    b.textContent = msg;
+    clearTimeout(flashT);
+    flashT = setTimeout(function () { b.textContent = orig; }, 1500);
+  }
+
+  // ---------- Init ----------
+  function init() {
+    loadDefaults();
+
+    // default dates (local, not UTC)
+    if (!$("invDate").value) {
+      var t = new Date();
+      var pad = function (x) { return (x < 10 ? "0" : "") + x; };
+      $("invDate").value = t.getFullYear() + "-" + pad(t.getMonth() + 1) + "-" + pad(t.getDate());
+    }
+
+    if (!$("invNo").value) $("invNo").value = suggestNextNumber();
+
+    if (!items.length) addItem();
+    else drawItems();
+
+    // wire all inputs to live render + autosave defaults
+    ALL_FIELDS.forEach(function (f) {
+      var el = $(f);
+      el.addEventListener("input", function () {
+        render();
+      });
+    });
+
+    $("addItem").addEventListener("click", function () { addItem(); });
+    $("print").addEventListener("click", function () { window.print(); });
+    $("save").addEventListener("click", function () { saveDefaults(false); });
+    $("saveHistory").addEventListener("click", function () {
+      var g = function (id) { return $(id).value; };
+      var entry = { savedAt: Date.now(), invNo: g("invNo"), invDate: g("invDate"),
+        dueDate: g("dueDate"), currency: g("currency"), clName: g("clName"), items: items };
+      var hist = loadHistory();
+      hist.unshift(entry);
+      saveHistory(hist);
+      renderHistory();
+      flash("Saved to history ✓");
+    });
+    $("reset").addEventListener("click", function () {
+      if (!confirm("Clear this invoice's line items and dates? Your saved business details stay.")) return;
+      items = [];
+      $("invNo").value = suggestNextNumber();
+      $("dueDate").value = "";
+      addItem();
+      render();
+    });
+
+    $("logoFile").addEventListener("change", function (e) {
+      var f = e.target.files && e.target.files[0];
+      if (!f) return;
+      if (f.size > 1024 * 1024) { alert("Logo is larger than 1 MB — please use a smaller image."); return; }
+      var reader = new FileReader();
+      reader.onload = function () {
+        try { localStorage.setItem(LOGO_KEY, reader.result); } catch (err) { alert("Could not store logo: " + err.message); }
+        render();
+      };
+      reader.readAsDataURL(f);
+    });
+    $("logoClear").addEventListener("click", function () {
+      try { localStorage.removeItem(LOGO_KEY); } catch (e) {}
+      $("logoFile").value = "";
+      render();
+    });
+
+    function setMobileView(view) {
+      var app = document.querySelector(".app");
+      app.classList.toggle("view-edit", view === "edit");
+      app.classList.toggle("view-preview", view === "preview");
+      $("mbEdit").classList.toggle("active", view === "edit");
+      $("mbPreview").classList.toggle("active", view === "preview");
+      $("mbEdit").setAttribute("aria-pressed", view === "edit" ? "true" : "false");
+      $("mbPreview").setAttribute("aria-pressed", view === "preview" ? "true" : "false");
+      if (view === "preview") window.scrollTo(0, 0);
+    }
+    $("mbEdit").addEventListener("click", function () { setMobileView("edit"); });
+    $("mbPreview").addEventListener("click", function () { setMobileView("preview"); render(); });
+    $("mbPrint").addEventListener("click", function () {
+      setMobileView("preview");
+      render();
+      setTimeout(function () { window.print(); }, 150);
+    });
+
+    renderHistory();
+    render();
+  }
+
+  // save items whenever they change (render is called on item edits)
+  var _render = render;
+  render = function () { _render(); saveDefaults(true); };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else { init(); }
+})();
+</script>
+</body>
+</html>
