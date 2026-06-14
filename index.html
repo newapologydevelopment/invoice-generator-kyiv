@@ -3,21 +3,21 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#080b12" />
+<meta name="theme-color" content="#151515" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <title>Invoice Builder · Генератор рахунків</title>
 <style>
   :root {
-    --bg: #080b12;
-    --panel: #111827;
-    --panel-soft: #172033;
-    --ink: #f7f9fc;
-    --muted: #9aa4b2;
-    --line: #2c3648;
-    --line-soft: #202a3d;
-    --accent: #7dd3fc;
-    --accent-hover: #38bdf8;
-    --accent-soft: rgba(125, 211, 252, .16);
+    --bg: #151515;
+    --panel: #1c1c1c;
+    --panel-soft: #242424;
+    --ink: #f4f4f5;
+    --muted: #a1a1aa;
+    --line: #343434;
+    --line-soft: #2a2a2a;
+    --accent: #f4f4f5;
+    --accent-hover: #ffffff;
+    --accent-soft: rgba(255, 255, 255, .14);
     --danger: #fda29b;
     --danger-soft: rgba(180, 35, 24, .18);
     --success: #86efac;
@@ -31,13 +31,13 @@
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background:
-      radial-gradient(circle at 16% 0%, rgba(56, 189, 248, .18), transparent 28rem),
-      radial-gradient(circle at 92% 12%, rgba(134, 239, 172, .09), transparent 24rem),
+      radial-gradient(circle at 18% 0%, rgba(255, 255, 255, .045), transparent 28rem),
+      radial-gradient(circle at 92% 12%, rgba(255, 255, 255, .03), transparent 24rem),
       var(--bg);
     color: var(--ink);
     font-size: 14px;
     line-height: 1.5;
-    -webkit-tap-highlight-color: rgba(37, 99, 235, 0.15);
+    -webkit-tap-highlight-color: rgba(255, 255, 255, 0.12);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -56,7 +56,7 @@
     z-index: 100;
     padding: 10px 16px;
     background: var(--accent);
-    color: #fff;
+    color: #151515;
     font-weight: 600;
     font-size: 14px;
     text-decoration: none;
@@ -100,7 +100,7 @@
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
-  .btn:active { background: #172033; border-color: #38bdf8; }
+  .btn:active { background: #252525; border-color: #525252; }
   .btn-accent:active { background: var(--accent-hover); }
   .btn:disabled { opacity: 0.65; cursor: not-allowed; }
   .btn.is-loading { position: relative; pointer-events: none; }
@@ -114,7 +114,7 @@
     min-height: 100vh;
   }
   .editor {
-    background: rgba(13, 18, 30, .96);
+    background: rgba(24, 24, 24, .97);
     border-right: 1px solid var(--line);
     padding: 0 0 112px;
     overflow-y: auto;
@@ -127,7 +127,7 @@
     overflow-y: auto;
     height: 100vh;
     background:
-      linear-gradient(180deg, rgba(125, 211, 252, .08), rgba(125, 211, 252, 0) 240px),
+      linear-gradient(180deg, rgba(255, 255, 255, .045), rgba(255, 255, 255, 0) 240px),
       transparent;
   }
 
@@ -137,7 +137,7 @@
     border-bottom: 1px solid var(--line);
     position: sticky;
     top: 0;
-    background: rgba(13, 18, 30, .9);
+    background: rgba(24, 24, 24, .92);
     backdrop-filter: blur(14px);
     z-index: 5;
   }
@@ -154,11 +154,11 @@
     border-radius: 8px;
     display: inline-grid;
     place-items: center;
-    background: linear-gradient(135deg, #f8fafc, #93c5fd);
-    color: #111827;
+    background: #f5f5f5;
+    color: #151515;
     font-weight: 800;
     letter-spacing: 0;
-    box-shadow: 0 8px 18px rgba(17,24,39,.18);
+    box-shadow: 0 8px 18px rgba(0,0,0,.32);
   }
   .brand-copy { min-width: 0; flex: 1; }
   .editor-head h1 {
@@ -211,7 +211,7 @@
     margin: 12px 14px;
     border: 1px solid var(--line-soft);
     border-radius: 8px;
-    background: rgba(17, 24, 39, .94);
+    background: rgba(28, 28, 28, .94);
     box-shadow: 0 1px 2px rgba(0,0,0,.2);
     overflow: clip;
   }
@@ -256,24 +256,13 @@
     font-size: 13px;
     font-family: inherit;
     color: var(--ink);
-    background-color: #0b1220;
+    background-color: #171717;
     transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
     touch-action: manipulation;
   }
   .field select {
-    background-color: #0b1220;
+    background-color: #171717;
     color: var(--ink);
-  }
-  .field input[type="file"]::file-selector-button {
-    margin-right: 8px;
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    background: #1f2937;
-    color: var(--ink);
-    font: inherit;
-    font-weight: 700;
-    padding: 5px 9px;
-    cursor: pointer;
   }
   .field input:focus, .field textarea:focus, .field select:focus {
     outline: none;
@@ -300,7 +289,7 @@
     margin: 0;
     font-size: 12px;
     font-weight: 800;
-    color: #cbd5e1;
+    color: #d4d4d4;
     text-transform: uppercase;
     letter-spacing: .04em;
   }
@@ -332,7 +321,7 @@
     min-height: 36px;
     border-radius: 8px;
     border: 1px solid var(--line);
-    background: #0b1220;
+    background: #171717;
     color: var(--ink);
     font-size: 13px;
     font-weight: 600;
@@ -340,9 +329,9 @@
     font-family: inherit;
     touch-action: manipulation;
   }
-  .btn:hover { background: #151f32; border-color: #3b485c; }
+  .btn:hover { background: #242424; border-color: #484848; }
   .btn-block { width: 100%; }
-  .btn-accent { background: var(--accent); color: #06121d; border-color: var(--accent); }
+  .btn-accent { background: var(--accent); color: #151515; border-color: var(--accent); }
   .btn-accent:hover { background: var(--accent-hover); }
   .btn-danger { color: var(--danger); background: var(--danger-soft); border-color: #fecdca; }
   .btn-danger:hover { background: rgba(180, 35, 24, .26); border-color: #fda29b; }
@@ -351,10 +340,11 @@
   .toolbar {
     position: fixed;
     left: 0;
-    width: clamp(390px, 33.6vw, 430px);
+    width: 430px;
+    max-width: 100vw;
     bottom: 0;
     z-index: 10;
-    background: rgba(13, 18, 30, .9);
+    background: rgba(24, 24, 24, .92);
     backdrop-filter: blur(14px);
     border-top: 1px solid var(--line);
     border-right: 1px solid var(--line);
@@ -397,7 +387,6 @@
     margin-bottom: 22px;
   }
   .inv-title { font-size: 30px; font-weight: 800; letter-spacing: 0; line-height: 1.05; }
-  .inv-logo { display:block; max-height:56px; max-width:220px; margin-bottom:8px; object-fit:contain; }
   .inv-title small { display: block; font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; margin-top: 2px; }
   .inv-meta { text-align: right; font-size: 11px; }
   .inv-meta .num { font-size: 16px; font-weight: 700; }
@@ -718,11 +707,6 @@
       <summary>Service provider — ФОП (Ukraine)</summary>
       <div class="section-body">
         <div class="field">
-          <label for="logoFile">Logo (optional) · Логотип</label>
-          <input id="logoFile" name="logoFile" type="file" accept="image/*" autocomplete="off" />
-          <button class="btn btn-danger" id="logoClear" type="button" style="margin-top:6px">Remove Logo</button>
-        </div>
-        <div class="field">
           <label for="spName">Full name · ПІБ</label>
           <input id="spName" name="spName" type="text" autocomplete="name" placeholder="Іваненко Іван Іванович…" />
         </div>
@@ -916,7 +900,6 @@
 
   var LS_KEY = "invoice_builder_v1";
   var HIST_KEY = "invoice_builder_history";
-  var LOGO_KEY = "invoice_builder_logo";
   var DEFAULT_FIELDS = [
     "spName","spStatusEn","spStatusUa","spTaxId","spTaxGroup","spAddrEn","spAddrUa","spEmail","spPhone",
     "clName","clAddr","clTaxId","clEmail",
@@ -1282,14 +1265,9 @@
     if (clientEl) clientEl.textContent = g("clName") || "No client";
     if (dueEl) dueEl.textContent = g("dueDate") ? fmtDate(g("dueDate")) : "No due date";
 
-    var logo = "";
-    try { logo = localStorage.getItem(LOGO_KEY) || ""; } catch (e) {}
-    var logoAlt = g("spName") ? esc(g("spName")) + " logo" : "Company logo";
-
     var html =
       '<div class="inv-top">' +
         '<div class="inv-title">' +
-          (logo ? '<img class="inv-logo" src="' + esc(logo) + '" alt="' + logoAlt + '" />' : "") +
           'INVOICE<small>РАХУНОК-ФАКТУРА</small></div>' +
         '<div class="inv-meta">' +
           '<div class="num">№ ' + (esc(g("invNo")) || "—") + "</div>" +
@@ -1526,23 +1504,6 @@
     });
     $("resetDialog").addEventListener("click", function (e) {
       if (e.target === $("resetDialog")) closeDialog($("resetDialog"));
-    });
-
-    $("logoFile").addEventListener("change", function (e) {
-      var f = e.target.files && e.target.files[0];
-      if (!f) return;
-      if (f.size > 1024 * 1024) { alert("Logo is larger than 1 MB — please use a smaller image."); return; }
-      var reader = new FileReader();
-      reader.onload = function () {
-        try { localStorage.setItem(LOGO_KEY, reader.result); } catch (err) { alert("Could not store logo: " + err.message); }
-        render();
-      };
-      reader.readAsDataURL(f);
-    });
-    $("logoClear").addEventListener("click", function () {
-      try { localStorage.removeItem(LOGO_KEY); } catch (e) {}
-      $("logoFile").value = "";
-      render();
     });
 
     function setMobileView(view, fromPopstate) {
